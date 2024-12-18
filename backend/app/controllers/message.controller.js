@@ -1,0 +1,99 @@
+const MessageService = require("../services/message.service");
+const MongoDB = require("../utils/mongodb.util");
+const ApiError = require("../api-error");
+const { emitEvent } = require("../../socket.io");
+
+
+exports.create = async (req, res, next) => {
+    console.log(req.body);
+    if (!req.body?.userId) {
+      return next(new ApiError(400, "Name can not be empty"));
+    }
+    try {
+      const messageService = new MessageService(MongoDB.client);
+      const document = await messageService.create(req.body);
+    
+      emitEvent('createMessage', {messageId : document.inserted});
+      return res.send(document);
+    } catch (error) {
+      return next(new ApiError(500, "An error occurred while creating search"));
+    }
+};
+
+exports.findAll = async (req, res, next) => {
+    let documents = [];
+
+    try{
+        const messageService = new MessageService(MongoDB.client);
+        const {name} = req.query;
+        if (name){
+            documents =  await messageService.findByName(name);
+        }
+        else {
+            documents = await messageService.find({});
+        }
+    }catch(error){
+        return next(
+            new ApiError(500, "An error occurred while retrieving searchs")
+        )
+    }
+    return res.send(documents);
+};
+
+// exports.deleteOne = async (req, res, next) =>{
+//     try{
+//         const searchService = new SearchService(MongoDB.client);
+//         const document = await searchService.deleteOne(req.params.id);
+//         if(!document){
+//             return next(new ApiError(404, "Search not found"));
+//         }
+//         return res.send({message: "Bạn đã xóa tìm kiếm thành công"});
+//     }catch(error){
+//         return next(
+//             new ApiError(
+//                 500,
+//                 `Could not delete search with id=${req.params.id}`
+//             )
+//         );
+//     }
+// };
+
+// exports.findByUserId = async (req, res, next) => {
+//     let documents = [];
+
+//     try{
+//         const searchService = new SearchService(MongoDB.client);
+//         const userId = req.params.userId;
+//         // console.log(userId);
+//         if (userId){
+//             documents =  await searchService.findByUserId(userId);
+//         }
+//     }catch(error){
+//         return next(
+//             new ApiError(500, "Có lỗi trong quá trình lấy danh sách dữ liệu cart")
+//         )
+//     }
+//     return res.send(documents);
+// };
+
+// exports.deleteAll = async (req, res, next) =>{
+//     try{
+//         const searchService = new SearchService(MongoDB.client);
+//         const result = await searchService.deleteAll(req.params.userId);
+//         if (result && result.deletedCount > 0) {
+//             return res.send({ message: "Bạn đã xóa tất cả lịch sử tìm kiếm thành công" });
+//           } else {
+//             return next(new ApiError(404, "Không có tìm kiếm nào để xóa"));
+//           }
+//     }catch(error){
+//         return next(
+//             new ApiError(
+//                 500,
+//                 `Could not delete search with id=${req.params.id}`
+//             )
+//         );
+//     }
+// };
+
+
+
